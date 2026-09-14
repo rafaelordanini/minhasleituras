@@ -1,5 +1,6 @@
 (() => {
   let editingDocId = null;
+  let pendingSourceUrl = '';
   const allowedTags = new Set(['P','DIV','BR','H2','H3','H4','BLOCKQUOTE','UL','OL','LI','PRE','CODE','EM','STRONG','B','I','A','HR','MARK','SPAN']);
   const dropTags = new Set(['SCRIPT','STYLE','IFRAME','OBJECT','EMBED','FORM','META','LINK','SVG','MATH','VIDEO','AUDIO','SOURCE']);
 
@@ -61,7 +62,12 @@
     return (box.innerText || box.textContent || '').replace(/\s+/g, ' ').trim();
   }
 
-  function openTextEditor(docId = null) {
+  function sourceHost(url) {
+    try { return new URL(url).hostname.replace(/^www\./, ''); }
+    catch { return ''; }
+  }
+
+  function openTextEditor(docId = null, options = {}) {
     const modal = el('textEditorModal');
     const title = el('editorTitleInput');
     const subtitle = el('editorSubtitleInput');
@@ -71,6 +77,7 @@
 
     const doc = docId ? state.docs.find(item => item.id === docId) : null;
     editingDocId = doc?.id || null;
+    pendingSourceUrl = doc ? (doc.sourceUrl || '') : String(options.sourceUrl || '');
     heading.textContent = doc ? 'Editar texto' : 'Adicionar texto manualmente';
     title.value = doc?.title || '';
     subtitle.value = doc?.subtitle ?? doc?.dek ?? '';
@@ -79,9 +86,14 @@
     setTimeout(() => title.focus(), 40);
   }
 
+  function openManualFromUrl(url) {
+    openTextEditor(null, { sourceUrl: url });
+  }
+
   function closeTextEditor() {
     el('textEditorModal')?.classList.remove('open');
     editingDocId = null;
+    pendingSourceUrl = '';
   }
 
   function refreshReadingLabels(doc, mins) {
@@ -122,6 +134,7 @@
       doc.textContent = textContent;
       refreshReadingLabels(doc, mins);
     } else {
+      const host = sourceHost(pendingSourceUrl);
       doc = {
         id: uid('doc'),
         title,
@@ -129,11 +142,11 @@
         type: `Manual · ${mins} min`,
         dek: subtitle,
         label: `Texto manual · Leitura de ${mins} min`,
-        byline: '',
-        meta: '',
+        byline: host || '',
+        meta: host || '',
         html,
         textContent,
-        sourceUrl: '',
+        sourceUrl: pendingSourceUrl,
         sourceType: 'manual',
         tagIds: [],
         notes: [],
@@ -191,5 +204,5 @@
     }
   });
 
-  window.LeiturEditor = { openTextEditor, closeTextEditor, saveTextEditor, sanitizeEditorHtml, editorText };
+  window.LeiturEditor = { openTextEditor, openManualFromUrl, closeTextEditor, saveTextEditor, sanitizeEditorHtml, editorText };
 })();
