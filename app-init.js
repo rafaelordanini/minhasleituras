@@ -23,7 +23,6 @@ function setupEvents() {
   el('notesToggle').addEventListener('click', () => el('rightPanel').classList.add('open'));
   el('closeNotes').addEventListener('click', () => el('rightPanel').classList.remove('open'));
 
-  // Não deixa o clique no menu flutuante desfazer a seleção do texto.
   [el('highlightAction'), el('translateAction')].forEach(btn => {
     btn.addEventListener('pointerdown', e => e.preventDefault());
     btn.addEventListener('mousedown', e => e.preventDefault());
@@ -32,7 +31,6 @@ function setupEvents() {
   el('translateAction').addEventListener('click', translateSelection);
   el('translationClose').addEventListener('click', () => el('translationCard').classList.remove('open'));
 
-  // pointerup cobre mouse/caneta e funciona melhor com conteúdo inserido dinamicamente.
   document.addEventListener('pointerup', e => {
     if (e.target.closest?.('#floatingHL') || e.target.closest?.('#translationCard')) return;
     setTimeout(captureSelection, 0);
@@ -68,7 +66,10 @@ function setupEvents() {
   });
 }
 
+let leituraInitStarted = false;
 async function init() {
+  if (leituraInitStarted) return;
+  leituraInitStarted = true;
   try {
     state.db = await openDB();
     await loadData();
@@ -82,4 +83,5 @@ async function init() {
   }
 }
 
-init();
+window.startLeituraApp = init;
+if (!document.getElementById('authGate')) init();
