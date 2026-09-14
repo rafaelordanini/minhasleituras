@@ -88,6 +88,25 @@
     }
   }
 
+  async function consumeMarker(doc, marker) {
+    if (!doc || !marker) return;
+    const body = el('articleBody');
+    if (!body) return;
+
+    const targetY = Math.max(0, marker.getBoundingClientRect().top + window.scrollY - window.innerHeight * 0.42);
+    window.scrollTo({ top: targetY, behavior: 'smooth' });
+
+    const parent = marker.parentNode;
+    marker.remove();
+    parent?.normalize?.();
+    doc.readingMarker = null;
+    doc.readingMarkerAt = null;
+    doc.html = body.innerHTML;
+    await saveDoc(doc);
+    decorateReaderMarkerControls(doc);
+    toast('Leitura retomada. Marcador removido.');
+  }
+
   function decorateReaderMarkerControls(doc) {
     const actions = el('readerActions');
     if (!actions || !doc) return;
@@ -125,17 +144,21 @@
       resume.type = 'button';
       resume.id = 'resumeMarkerBtn';
       resume.className = 'icon-btn marker-resume';
-      resume.title = 'Ir para o marcador de leitura';
+      resume.title = 'Retomar daqui e remover o marcador';
       resume.innerHTML = '↳ <span>Retomar</span>';
-      resume.addEventListener('click', event => {
+      resume.addEventListener('click', async event => {
         event.preventDefault();
         event.stopPropagation();
         const marker = getCurrentMarker();
         if (!marker) {
-          toast('Não encontrei o marcador neste texto.');
+          doc.readingMarker = null;
+          doc.readingMarkerAt = null;
+          await saveDoc(doc);
+          decorateReaderMarkerControls(doc);
+          toast('O marcador salvo não existe mais neste texto.');
           return;
         }
-        marker.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        await consumeMarker(doc, marker);
       });
       actions.insertBefore(resume, listen || actions.firstChild);
     }
@@ -175,7 +198,7 @@
         return;
       }
       range = document.createRange();
-      if (node.nodeType === Node.TEXT_NODE) range.setStart(node, Math.min(node.textContent.length, 0));
+      if (node.nodeType === Node.TEXT_NODE) range.setStart(node, 0);
       else range.setStart(node, 0);
       range.collapse(true);
     }

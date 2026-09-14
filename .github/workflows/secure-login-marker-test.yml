@@ -1,0 +1,78 @@
+name: Secure Login and Marker Test
+
+on:
+  push:
+    branches:
+      - feature/secure-login-marker-resume
+  pull_request:
+    paths:
+      - 'index.html'
+      - 'app-auth.js'
+      - 'auth-crypto.js'
+      - 'app-reading-tools.js'
+      - 'app-init.js'
+      - 'api/auth/**'
+      - 'api/_auth.js'
+      - 'tests/auth-crypto.test.js'
+      - 'tests/auth-ui.test.js'
+      - 'tests/reading-tools.test.js'
+      - '.github/workflows/secure-login-marker-test.yml'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Syntax checks
+        run: |
+          node --check app-auth.js
+          node --check auth-crypto.js
+          node --check app-reading-tools.js
+          node --check app-init.js
+          node --check api/_auth.js
+          node --check api/auth/challenge.js
+          node --check api/auth/login.js
+          node --check api/auth/session.js
+          node --check api/auth/logout.js
+      - name: Functional tests
+        run: node --test tests/auth-crypto.test.js tests/auth-ui.test.js tests/reading-tools.test.js
+      - name: Ensure the configured password literal is absent from tracked source
+        run: |
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const cp = require('node:child_process');
+          const crypto = require('node:crypto');
+          const forbiddenHash = '85c42ba632f5cdb038780042de8c2967526c7da110e94cf9a14f63ff46cbaf72';
+          const files = cp.execFileSync('git', ['ls-files', '-z']).toString().split('\0').filter(Boolean);
+          for (const file of files) {
+            let text;
+            try { text = fs.readFileSync(file, 'utf8'); } catch { continue; }
+            for (let i = 0; i <= text.length - 8; i++) {
+              const candidate = text.slice(i, i + 8);
+              const digest = crypto.createHash('sha256').update(candidate).digest('hex');
+              if (digest === forbiddenHash) {
+                console.error(`Forbidden password literal found in tracked file: ${file}`);
+                process.exit(1);
+              }
+            }
+          }
+          console.log('password-literal-absent');
+          NODE
+      - name: Check Supabase auth challenge
+        run: |
+          node - <<'NODE'
+          const url = 'https://cahfjsfxlvvfjehdizsb.supabase.co/functions/v1/leitura-auth';
+          const r = await fetch(url, {method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify({action:'challenge'})});
+          const data = await r.json();
+          if (!r.ok || !data.challengeId || !data.serverPublicKey || data.protocol !== 'ECDH-P256/AES-256-GCM') {
+            console.error(r.status, data);
+            process.exit(1);
+          }
+          console.log('supabase-challenge-ok', data.protocol);
+          NODE
