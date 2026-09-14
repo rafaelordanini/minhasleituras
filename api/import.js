@@ -1,12 +1,24 @@
 const dns = require('node:dns').promises;
 const net = require('node:net');
-const { JSDOM } = require('jsdom');
-const { Readability } = require('@mozilla/readability');
-const sanitizeHtml = require('sanitize-html');
 
 const MAX_BYTES = 4 * 1024 * 1024;
 const MAX_REDIRECTS = 4;
 const FETCH_TIMEOUT_MS = 9000;
+
+let parserDeps;
+function getParserDeps() {
+  if (parserDeps) return parserDeps;
+  try {
+    const { JSDOM } = require('jsdom');
+    const { Readability } = require('@mozilla/readability');
+    const sanitizeHtml = require('sanitize-html');
+    parserDeps = { JSDOM, Readability, sanitizeHtml };
+    return parserDeps;
+  } catch (error) {
+    const detail = error && error.message ? error.message : String(error || 'erro desconhecido');
+    throw new Error(`O servidor não conseguiu carregar o extrator de texto: ${detail}`);
+  }
+}
 
 function isPrivateIpv4(ip) {
   const parts = ip.split('.').map(Number);
@@ -102,14 +114,14 @@ async function fetchPage(initialUrl) {
         redirect: 'manual',
         signal: controller.signal,
         headers: {
-          'User-Agent': 'MinhasLeituras/0.2 (+reader import; contact via GitHub)',
+          'User-Agent': 'Mozilla/5.0 (compatible; MinhasLeituras/0.2; +https://github.com/rafaelordanini/minhasleituras)',
           'Accept': 'text/html,application/xhtml+xml,text/plain;q=0.8,*/*;q=0.2',
           'Accept-Language': 'pt-BR,pt;q=0.9,es;q=0.8,en;q=0.7'
         }
       });
     } catch (error) {
       if (error && error.name === 'AbortError') throw new Error('O site demorou demais para responder.');
-      throw new Error('Não foi possível acessar esse site.');
+      throw new Error(`Não foi possível acessar esse site${error && error.message ? `: ${error.message}` : '.'}`);
     } finally {
       clearTimeout(timeout);
     }
@@ -132,7 +144,6 @@ async function fetchPage(initialUrl) {
 
     const declaredLength = Number(response.headers.get('content-length') || 0);
     if (declaredLength > MAX_BYTES) throw new Error('A página é grande demais para importar.');
-
     if (!response.body) throw new Error('O site não retornou conteúdo legível.');
 
     const reader = response.body.getReader();
@@ -166,20 +177,16 @@ async function fetchPage(initialUrl) {
   throw new Error('O site redirecionou vezes demais.');
 }
 
-function cleanArticleHtml(content) {
+function cleanArticleHtml(content, sanitizeHtml) {
   return sanitizeHtml(content || '', {
     allowedTags: ['p', 'br', 'h2', 'h3', 'h4', 'blockquote', 'ul', 'ol', 'li', 'pre', 'code', 'em', 'strong', 'b', 'i', 'a', 'hr'],
-    allowedAttributes: {
-      a: ['href']
-    },
+    allowedAttributes: { a: ['href'] },
     allowedSchemes: ['http', 'https', 'mailto'],
     allowProtocolRelative: false,
     transformTags: {
       a: (tagName, attribs) => ({
         tagName,
-        attribs: {
-          ...(attribs.href ? { href: attribs.href } : {})
-        }
+        attribs: attribs.href ? { href: attribs.href } : {}
       })
     }
   });
@@ -211,12 +218,13 @@ module.exports = async function handler(req, res) {
     return res.status(405).json({ error: 'Método não permitido.' });
   }
 
-  const rawUrl = Array.isArray(req.query.url) ? req.query.url[0] : req.query.url;
+  const rawUrl = Array.isArray(req.query?.url) ? req.query.url[0] : req.query?.url;
   if (!rawUrl || typeof rawUrl !== 'string') {
     return res.status(400).json({ error: 'Informe uma URL para importar.' });
   }
 
   try {
+    const { JSDOM, Readability, sanitizeHtml } = getParserDeps();
     const { html, finalUrl } = await fetchPage(rawUrl);
     const dom = new JSDOM(html, { url: finalUrl });
     const document = dom.window.document;
@@ -231,7 +239,7 @@ module.exports = async function handler(req, res) {
       return res.status(422).json({ error: 'Não consegui identificar um texto principal nessa página.' });
     }
 
-    const content = cleanArticleHtml(article.content);
+    const content = cleanArticleHtml(article.content, sanitizeHtml);
     const textContent = (article.textContent || '').replace(/\n{3,}/g, '\n\n').trim();
     if (!content || textContent.length < 150) {
       return res.status(422).json({ error: 'O texto encontrado é curto demais ou não pôde ser extraído.' });
@@ -249,7 +257,8 @@ module.exports = async function handler(req, res) {
       url: finalUrl
     });
   } catch (error) {
+    console.error('import-error', error);
     const message = error instanceof Error ? error.message : 'Não foi possível importar esse link.';
-    return res.status(400).json({ error: message });
+    return res.status(500).json({ error: message });
   }
 };
