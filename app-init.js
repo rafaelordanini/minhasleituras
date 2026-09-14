@@ -22,11 +22,30 @@ function setupEvents() {
   el('searchInput').addEventListener('input', renderNotes);
   el('notesToggle').addEventListener('click', () => el('rightPanel').classList.add('open'));
   el('closeNotes').addEventListener('click', () => el('rightPanel').classList.remove('open'));
+
+  // Não deixa o clique no menu flutuante desfazer a seleção do texto.
+  [el('highlightAction'), el('translateAction')].forEach(btn => {
+    btn.addEventListener('pointerdown', e => e.preventDefault());
+    btn.addEventListener('mousedown', e => e.preventDefault());
+  });
   el('highlightAction').addEventListener('click', highlightSelection);
   el('translateAction').addEventListener('click', translateSelection);
   el('translationClose').addEventListener('click', () => el('translationCard').classList.remove('open'));
-  document.addEventListener('mouseup', () => setTimeout(captureSelection, 0));
+
+  // pointerup cobre mouse/caneta e funciona melhor com conteúdo inserido dinamicamente.
+  document.addEventListener('pointerup', e => {
+    if (e.target.closest?.('#floatingHL') || e.target.closest?.('#translationCard')) return;
+    setTimeout(captureSelection, 0);
+  });
+  document.addEventListener('keyup', e => {
+    if (e.key === 'Shift' || e.key.startsWith('Arrow')) setTimeout(captureSelection, 0);
+  });
+  document.addEventListener('touchend', e => {
+    if (e.target.closest?.('#floatingHL') || e.target.closest?.('#translationCard')) return;
+    setTimeout(captureSelection, 50);
+  }, {passive:true});
   document.addEventListener('scroll', () => { el('floatingHL').style.display = 'none'; }, true);
+
   el('listenBtn').addEventListener('click', () => {
     const doc = activeDoc(); const body = el('articleBody'); if (!doc || !body) return;
     if (!('speechSynthesis' in window)) { toast('Áudio não suportado neste navegador'); return; }
