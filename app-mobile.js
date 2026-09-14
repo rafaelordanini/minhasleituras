@@ -2,6 +2,52 @@
   const MOBILE_QUERY = '(max-width:760px)';
   const mq = window.matchMedia(MOBILE_QUERY);
 
+  function ensureMobileChrome() {
+    const topbar = document.querySelector('.topbar');
+    const crumb = document.getElementById('crumb');
+    if (topbar && !document.getElementById('mobileMenuBtn')) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.id = 'mobileMenuBtn';
+      button.className = 'mobile-menu-btn';
+      button.setAttribute('aria-label', 'Abrir menu da biblioteca');
+      button.setAttribute('aria-controls', 'leftPanel');
+      button.setAttribute('aria-expanded', 'false');
+      button.title = 'Abrir biblioteca';
+      button.textContent = '☰';
+      topbar.insertBefore(button, crumb || topbar.firstChild);
+    }
+
+    const brand = document.querySelector('#leftPanel .brand');
+    const newBtn = document.getElementById('newBtn');
+    if (brand && newBtn && !brand.querySelector('.brand-actions')) {
+      const actions = document.createElement('div');
+      actions.className = 'brand-actions';
+      brand.insertBefore(actions, newBtn);
+      actions.appendChild(newBtn);
+
+      const close = document.createElement('button');
+      close.type = 'button';
+      close.id = 'mobileSidebarClose';
+      close.className = 'mobile-sidebar-close';
+      close.setAttribute('aria-label', 'Fechar menu da biblioteca');
+      close.title = 'Fechar biblioteca';
+      close.textContent = '×';
+      actions.appendChild(close);
+    }
+
+    const app = document.getElementById('app');
+    if (app && !document.getElementById('mobileBackdrop')) {
+      const shade = document.createElement('div');
+      shade.id = 'mobileBackdrop';
+      shade.className = 'mobile-backdrop';
+      shade.setAttribute('aria-hidden', 'true');
+      app.insertAdjacentElement('afterend', shade);
+    }
+  }
+
+  ensureMobileChrome();
+
   const left = () => document.getElementById('leftPanel');
   const backdrop = () => document.getElementById('mobileBackdrop');
   const menuButton = () => document.getElementById('mobileMenuBtn');
