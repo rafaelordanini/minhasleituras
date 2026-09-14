@@ -1,0 +1,36 @@
+.article-body,
+.article-body p,
+.article-body div,
+.article-body section,
+.article-body article,
+.article-body li,
+.article-body blockquote,
+.article-body dd,
+.article-body dt {
+  text-align: justify !important;
+  text-justify: inter-word !important;
+}
+
+.article-body,
+.article-body * {
+  -webkit-user-select: text !important;
+  user-select: text !important;
+}
+
+.article-body h1,
+.article-body h2,
+.article-body h3,
+.article-body h4,
+.article-body h5,
+.article-body h6,
+.article-body pre,
+.article-body code,
+.article-body table,
+.article-body th,
+.article-body td {
+  text-align: left !important;
+}
+
+.floating-hl.selection-tools-visible {
+  display: flex !important;
+}
