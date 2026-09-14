@@ -4,22 +4,8 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Leitura.</title>
-<link rel="stylesheet" href="/styles.css?v=20260914-3" />
-<style>
-  .article-body,
-  .article-body p,
-  .article-body li,
-  .article-body blockquote {
-    text-align: justify !important;
-    text-justify: inter-word !important;
-  }
-  .article-body h1,
-  .article-body h2,
-  .article-body h3,
-  .article-body h4 {
-    text-align: left !important;
-  }
-</style>
+<link rel="stylesheet" href="/styles.css?v=20260914-4" />
+<link rel="stylesheet" href="/fixes.css?v=20260914-4" />
 </head>
 <body>
 <div class="app" id="app">
@@ -73,28 +59,9 @@
 <div class="modal" id="tagModal"><div class="modal-card"><h3>Criar etiqueta</h3><p>Use etiquetas para organizar sua biblioteca por tema, curso, projeto ou assunto. Depois de criar, abra o texto e clique em <strong>🏷 Vincular etiqueta</strong> no topo para associá-la.</p><div class="modal-row"><input id="tagNameInput" type="text" placeholder="Ex.: Política Internacional" /></div><div class="color-row"><label for="tagColorInput">Cor da etiqueta</label><input class="color-input" id="tagColorInput" type="color" value="#315c8c" /></div><div class="modal-actions"><button class="btn" data-close="tagModal">Cancelar</button><button class="btn primary" id="saveTagBtn">Criar etiqueta</button></div></div></div>
 <div class="modal" id="tagPickerModal"><div class="modal-card"><h3>Etiquetas do texto</h3><p>Marque uma ou mais etiquetas para este texto.</p><div class="tag-picker-list" id="tagPickerList"></div><div class="modal-actions"><button class="btn" id="createTagFromPicker">Nova etiqueta</button><button class="btn primary" data-close="tagPickerModal">Concluir</button></div></div></div>
 <div class="toast" id="toast"></div>
-<script src="/app-core.js?v=20260914-3"></script>
-<script src="/app-features.js?v=20260914-3"></script>
-<script src="/app-init.js?v=20260914-3"></script>
-<script>
-(() => {
-  let timer;
-  const scheduleSelectionCapture = () => {
-    clearTimeout(timer);
-    timer = setTimeout(() => {
-      try {
-        const selection = window.getSelection();
-        if (!selection || selection.isCollapsed || !selection.rangeCount) return;
-        if (typeof captureSelection === 'function') captureSelection();
-      } catch (_) {}
-    }, 40);
-  };
-  document.addEventListener('mouseup', e => {
-    if (e.target.closest?.('#floatingHL') || e.target.closest?.('#translationCard')) return;
-    scheduleSelectionCapture();
-  });
-  document.addEventListener('selectionchange', scheduleSelectionCapture);
-})();
-</script>
+<script src="/app-core.js?v=20260914-4"></script>
+<script src="/app-features.js?v=20260914-4"></script>
+<script src="/app-init.js?v=20260914-4"></script>
+<script src="/app-fixes.js?v=20260914-4"></script>
 </body>
 </html>
