@@ -6,18 +6,7 @@
   const input = document.getElementById('authPassword');
   const submit = document.getElementById('authSubmit');
   const message = document.getElementById('authMessage');
-
-  function bytesToBase64(bytes) {
-    let binary = '';
-    const view = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
-    for (const byte of view) binary += String.fromCharCode(byte);
-    return btoa(binary);
-  }
-
-  function base64ToBytes(value) {
-    const binary = atob(value);
-    return Uint8Array.from(binary, c => c.charCodeAt(0));
-  }
+  const authCrypto = window.LeituraAuthCrypto;
 
   function setMessage(text = '', isError = false) {
     if (!message) return;
@@ -28,40 +17,6 @@
   function setBusy(busy) {
     gate?.classList.toggle('auth-loading', busy);
     if (submit) submit.disabled = busy;
-  }
-
-  async function encryptedPayload(password, challenge) {
-    const serverPublic = await crypto.subtle.importKey(
-      'jwk',
-      challenge.serverPublicKey,
-      { name: 'ECDH', namedCurve: 'P-256' },
-      false,
-      []
-    );
-    const clientPair = await crypto.subtle.generateKey(
-      { name: 'ECDH', namedCurve: 'P-256' },
-      true,
-      ['deriveBits']
-    );
-    const sharedSecret = await crypto.subtle.deriveBits(
-      { name: 'ECDH', public: serverPublic },
-      clientPair.privateKey,
-      256
-    );
-    const aesKey = await crypto.subtle.importKey('raw', sharedSecret, { name: 'AES-GCM' }, false, ['encrypt']);
-    const iv = crypto.getRandomValues(new Uint8Array(12));
-    const ciphertext = await crypto.subtle.encrypt(
-      { name: 'AES-GCM', iv },
-      aesKey,
-      new TextEncoder().encode(password)
-    );
-    const clientPublicKey = await crypto.subtle.exportKey('jwk', clientPair.publicKey);
-    return {
-      challengeId: challenge.challengeId,
-      clientPublicKey,
-      iv: bytesToBase64(iv),
-      ciphertext: bytesToBase64(ciphertext)
-    };
   }
 
   async function requestJson(url, options = {}) {
@@ -130,13 +85,17 @@
       input?.focus();
       return;
     }
+    if (!authCrypto?.encryptedPayload) {
+      setMessage('Seu navegador não oferece a criptografia necessária.', true);
+      return;
+    }
     if (input) input.value = '';
     setBusy(true);
     setMessage('Verificando…');
     try {
       const challengeResult = await requestJson('/api/auth/challenge');
       if (!challengeResult.response.ok) throw new Error(challengeResult.data?.error || 'Não foi possível iniciar o login.');
-      const payload = await encryptedPayload(password, challengeResult.data);
+      const payload = await authCrypto.encryptedPayload(password, challengeResult.data, window.crypto);
       const loginResult = await requestJson('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
