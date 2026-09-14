@@ -1,0 +1,23 @@
+name: Translation Test
+
+on:
+  pull_request:
+    paths:
+      - 'api/translate.js'
+      - 'tests/translation.test.js'
+      - '.github/workflows/translation-test.yml'
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax check
+        run: node --check api/translate.js
+      - name: Translation tests
+        run: node --test tests/translation.test.js
