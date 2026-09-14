@@ -1,0 +1,14 @@
+{
+  "name": "minhasleituras",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Leitor web minimalista com importação de artigos, destaques e notas.",
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@mozilla/readability": "0.6.0",
+    "jsdom": "30.0.1",
+    "sanitize-html": "2.17.7"
+  }
+}
