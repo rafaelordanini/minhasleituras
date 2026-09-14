@@ -7,9 +7,21 @@ function setupEvents() {
   el('importUrl').addEventListener('click', async () => {
     const url = el('urlInput').value.trim(); if (!url) return;
     const btn = el('importUrl'), old = btn.textContent; btn.disabled = true; btn.textContent = 'Importando…';
-    try { await importUrl(url); el('urlModal').classList.remove('open'); el('urlInput').value = ''; toast('Link salvo na biblioteca'); }
-    catch (err) { toast(errorText(err, 'Não foi possível importar esse link.'), 6000); }
-    finally { btn.disabled = false; btn.textContent = old; }
+    try {
+      await importUrl(url);
+      el('urlModal').classList.remove('open');
+      el('urlInput').value = '';
+      toast('Link salvo na biblioteca');
+    } catch (err) {
+      if (err?.code === 'UPSTREAM_BLOCKED' && window.LeiturEditor?.openManualFromUrl) {
+        el('urlModal').classList.remove('open');
+        el('urlInput').value = '';
+        window.LeiturEditor.openManualFromUrl(err.sourceUrl || url);
+        toast('Este site bloqueia a importação automática. Cole o texto no editor manual; o link de origem será preservado.', 8000);
+      } else {
+        toast(errorText(err, 'Não foi possível importar esse link.'), 6000);
+      }
+    } finally { btn.disabled = false; btn.textContent = old; }
   });
   document.querySelectorAll('[data-close]').forEach(btn => btn.addEventListener('click', () => el(btn.dataset.close).classList.remove('open')));
   el('allTextsNav').addEventListener('click', () => showLibrary());

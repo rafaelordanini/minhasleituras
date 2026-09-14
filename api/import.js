@@ -5,6 +5,17 @@ const MAX_BYTES = 4 * 1024 * 1024;
 const MAX_REDIRECTS = 4;
 const FETCH_TIMEOUT_MS = 9000;
 
+class ImportError extends Error {
+  constructor(message, { code = 'IMPORT_ERROR', statusCode = 500, sourceStatus = null, url = '' } = {}) {
+    super(message);
+    this.name = 'ImportError';
+    this.code = code;
+    this.statusCode = statusCode;
+    this.sourceStatus = sourceStatus;
+    this.url = url;
+  }
+}
+
 let parserDeps;
 function getParserDeps() {
   if (parserDeps) return parserDeps;
@@ -16,7 +27,7 @@ function getParserDeps() {
     return parserDeps;
   } catch (error) {
     const detail = error && error.message ? error.message : String(error || 'erro desconhecido');
-    throw new Error(`O servidor não conseguiu carregar o extrator de texto: ${detail}`);
+    throw new ImportError(`O servidor não conseguiu carregar o extrator de texto: ${detail}`);
   }
 }
 
@@ -63,11 +74,11 @@ async function assertPublicUrl(rawUrl) {
   try {
     parsed = new URL(rawUrl);
   } catch {
-    throw new Error('URL inválida.');
+    throw new ImportError('URL inválida.', { code: 'INVALID_URL', statusCode: 400 });
   }
 
   if (!['http:', 'https:'].includes(parsed.protocol)) {
-    throw new Error('Apenas links HTTP e HTTPS podem ser importados.');
+    throw new ImportError('Apenas links HTTP e HTTPS podem ser importados.', { code: 'INVALID_URL', statusCode: 400 });
   }
 
   const hostname = parsed.hostname.toLowerCase().replace(/\.$/, '');
@@ -78,11 +89,11 @@ async function assertPublicUrl(rawUrl) {
     hostname.endsWith('.local') ||
     hostname.endsWith('.internal')
   ) {
-    throw new Error('Esse endereço não pode ser importado.');
+    throw new ImportError('Esse endereço não pode ser importado.', { code: 'BLOCKED_URL', statusCode: 400 });
   }
 
   if (net.isIP(hostname)) {
-    if (isPrivateIp(hostname)) throw new Error('Esse endereço não pode ser importado.');
+    if (isPrivateIp(hostname)) throw new ImportError('Esse endereço não pode ser importado.', { code: 'BLOCKED_URL', statusCode: 400 });
     return parsed;
   }
 
@@ -90,11 +101,11 @@ async function assertPublicUrl(rawUrl) {
   try {
     records = await dns.lookup(hostname, { all: true, verbatim: true });
   } catch {
-    throw new Error('Não foi possível localizar esse site.');
+    throw new ImportError('Não foi possível localizar esse site.', { code: 'DNS_ERROR', statusCode: 502 });
   }
 
   if (!records.length || records.some(record => isPrivateIp(record.address))) {
-    throw new Error('Esse endereço não pode ser importado.');
+    throw new ImportError('Esse endereço não pode ser importado.', { code: 'BLOCKED_URL', statusCode: 400 });
   }
 
   return parsed;
@@ -120,31 +131,56 @@ async function fetchPage(initialUrl) {
         }
       });
     } catch (error) {
-      if (error && error.name === 'AbortError') throw new Error('O site demorou demais para responder.');
-      throw new Error(`Não foi possível acessar esse site${error && error.message ? `: ${error.message}` : '.'}`);
+      if (error && error.name === 'AbortError') {
+        throw new ImportError('O site demorou demais para responder.', { code: 'UPSTREAM_TIMEOUT', statusCode: 504, url: parsed.toString() });
+      }
+      throw new ImportError(`Não foi possível acessar esse site${error && error.message ? `: ${error.message}` : '.'}`, {
+        code: 'UPSTREAM_NETWORK_ERROR', statusCode: 502, url: parsed.toString()
+      });
     } finally {
       clearTimeout(timeout);
     }
 
     if (response.status >= 300 && response.status < 400) {
       const location = response.headers.get('location');
-      if (!location) throw new Error('O site respondeu com um redirecionamento inválido.');
+      if (!location) throw new ImportError('O site respondeu com um redirecionamento inválido.', { code: 'UPSTREAM_REDIRECT_ERROR', statusCode: 502, url: parsed.toString() });
       currentUrl = new URL(location, parsed).toString();
       continue;
     }
 
     if (!response.ok) {
-      throw new Error(`O site respondeu com status ${response.status}.`);
+      if (response.status === 401 || response.status === 403) {
+        throw new ImportError('O site de origem bloqueou a importação automática.', {
+          code: 'UPSTREAM_BLOCKED',
+          statusCode: 502,
+          sourceStatus: response.status,
+          url: parsed.toString()
+        });
+      }
+      if (response.status === 429) {
+        throw new ImportError('O site de origem limitou temporariamente as importações.', {
+          code: 'UPSTREAM_RATE_LIMITED',
+          statusCode: 502,
+          sourceStatus: response.status,
+          url: parsed.toString()
+        });
+      }
+      throw new ImportError(`O site respondeu com status ${response.status}.`, {
+        code: 'UPSTREAM_HTTP_ERROR',
+        statusCode: 502,
+        sourceStatus: response.status,
+        url: parsed.toString()
+      });
     }
 
     const contentType = (response.headers.get('content-type') || '').toLowerCase();
     if (contentType && !contentType.includes('text/html') && !contentType.includes('application/xhtml+xml') && !contentType.includes('text/plain')) {
-      throw new Error('O link não parece apontar para uma página de texto.');
+      throw new ImportError('O link não parece apontar para uma página de texto.', { code: 'UNSUPPORTED_CONTENT', statusCode: 422, url: parsed.toString() });
     }
 
     const declaredLength = Number(response.headers.get('content-length') || 0);
-    if (declaredLength > MAX_BYTES) throw new Error('A página é grande demais para importar.');
-    if (!response.body) throw new Error('O site não retornou conteúdo legível.');
+    if (declaredLength > MAX_BYTES) throw new ImportError('A página é grande demais para importar.', { code: 'CONTENT_TOO_LARGE', statusCode: 413, url: parsed.toString() });
+    if (!response.body) throw new ImportError('O site não retornou conteúdo legível.', { code: 'EMPTY_RESPONSE', statusCode: 422, url: parsed.toString() });
 
     const reader = response.body.getReader();
     const chunks = [];
@@ -156,7 +192,7 @@ async function fetchPage(initialUrl) {
       total += value.byteLength;
       if (total > MAX_BYTES) {
         try { await reader.cancel(); } catch {}
-        throw new Error('A página é grande demais para importar.');
+        throw new ImportError('A página é grande demais para importar.', { code: 'CONTENT_TOO_LARGE', statusCode: 413, url: parsed.toString() });
       }
       chunks.push(Buffer.from(value));
     }
@@ -174,7 +210,7 @@ async function fetchPage(initialUrl) {
     return { html, finalUrl: parsed.toString() };
   }
 
-  throw new Error('O site redirecionou vezes demais.');
+  throw new ImportError('O site redirecionou vezes demais.', { code: 'TOO_MANY_REDIRECTS', statusCode: 502, url: currentUrl });
 }
 
 function cleanArticleHtml(content, sanitizeHtml) {
@@ -236,13 +272,13 @@ module.exports = async function handler(req, res) {
 
     if (!article) article = fallbackArticle(document);
     if (!article) {
-      return res.status(422).json({ error: 'Não consegui identificar um texto principal nessa página.' });
+      return res.status(422).json({ error: 'Não consegui identificar um texto principal nessa página.', code: 'ARTICLE_NOT_FOUND', url: finalUrl });
     }
 
     const content = cleanArticleHtml(article.content, sanitizeHtml);
     const textContent = (article.textContent || '').replace(/\n{3,}/g, '\n\n').trim();
     if (!content || textContent.length < 150) {
-      return res.status(422).json({ error: 'O texto encontrado é curto demais ou não pôde ser extraído.' });
+      return res.status(422).json({ error: 'O texto encontrado é curto demais ou não pôde ser extraído.', code: 'ARTICLE_TOO_SHORT', url: finalUrl });
     }
 
     res.setHeader('Cache-Control', 'no-store');
@@ -259,6 +295,12 @@ module.exports = async function handler(req, res) {
   } catch (error) {
     console.error('import-error', error);
     const message = error instanceof Error ? error.message : 'Não foi possível importar esse link.';
-    return res.status(500).json({ error: message });
+    const statusCode = Number(error?.statusCode) || 500;
+    const payload = { error: message };
+    if (error?.code) payload.code = error.code;
+    if (error?.sourceStatus) payload.sourceStatus = error.sourceStatus;
+    if (error?.url) payload.url = error.url;
+    res.setHeader('Cache-Control', 'no-store');
+    return res.status(statusCode).json(payload);
   }
 };

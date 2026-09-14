@@ -82,7 +82,14 @@ async function importUrl(url) {
   const raw = await response.text();
   let data = {};
   if (raw) { try { data = JSON.parse(raw); } catch { data = {message:raw.slice(0,300)}; } }
-  if (!response.ok) throw new Error(errorText(data.error || data.message || data, `Falha ao importar (${response.status}).`));
+  if (!response.ok) {
+    const err = new Error(errorText(data.error || data.message || data, `Falha ao importar (${response.status}).`));
+    err.code = data.code || '';
+    err.sourceStatus = data.sourceStatus || null;
+    err.sourceUrl = data.url || url;
+    err.httpStatus = response.status;
+    throw err;
+  }
   if (!data.content || !data.textContent) throw new Error('A API respondeu, mas não devolveu um texto legível.');
   const mins = readingMinutes(data.textContent);
   const host = (() => { try { return new URL(data.url || url).hostname.replace(/^www\./,''); } catch { return data.siteName || 'Página da web'; } })();

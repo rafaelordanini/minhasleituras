@@ -1,0 +1,35 @@
+name: Blocked Import Fallback Test
+
+on:
+  push:
+    branches:
+      - fix/import-blocked-fallback
+  pull_request:
+    paths:
+      - 'api/import.js'
+      - 'app-features.js'
+      - 'app-editor.js'
+      - 'app-init.js'
+      - 'index.html'
+      - 'tests/import-blocked.test.js'
+      - '.github/workflows/import-blocked-test.yml'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Syntax checks
+        run: |
+          node --check api/import.js
+          node --check app-features.js
+          node --check app-editor.js
+          node --check app-init.js
+      - name: Functional test
+        run: node --test tests/import-blocked.test.js
