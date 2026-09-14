@@ -1,4 +1,4 @@
-.mobile-menu-btn,.mobile-sidebar-close,.mobile-backdrop{display:none}
+.brand-actions{display:flex;align-items:center;gap:7px}.mobile-menu-btn,.mobile-sidebar-close,.mobile-backdrop{display:none}
 
 @media(max-width:760px){
   html,body{max-width:100%;overflow-x:hidden}
@@ -34,7 +34,6 @@
 
   .brand{height:64px;padding:0 14px 0 18px}
   .brand-mark{font-size:24px}
-  .brand-actions{display:flex;align-items:center;gap:7px}
   .mobile-sidebar-close{display:grid;width:36px;height:36px;border:0;background:transparent;border-radius:50%;place-items:center;font-size:24px;line-height:1;cursor:pointer}
   .mobile-sidebar-close:hover,.mobile-sidebar-close:focus-visible{background:#ecece8}
   .left .section{padding:18px 16px}
