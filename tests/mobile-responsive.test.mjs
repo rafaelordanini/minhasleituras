@@ -5,7 +5,7 @@ const browser = await chromium.launch({headless:true});
 try {
   const mobile = await browser.newPage({viewport:{width:390,height:844}});
   await mobile.goto('http://127.0.0.1:4173', {waitUntil:'domcontentloaded'});
-  await mobile.waitForSelector('#mobileMenuBtn', {timeout:10000});
+  await mobile.waitForSelector('#mobileMenuBtn', {state:'attached', timeout:10000});
   await mobile.evaluate(() => {
     document.getElementById('authGate')?.setAttribute('hidden','');
     document.getElementById('app')?.classList.remove('auth-locked');
@@ -44,7 +44,7 @@ try {
 
   const desktop = await browser.newPage({viewport:{width:1280,height:800}});
   await desktop.goto('http://127.0.0.1:4173', {waitUntil:'domcontentloaded'});
-  await desktop.waitForSelector('#mobileMenuBtn', {timeout:10000});
+  await desktop.waitForSelector('#mobileMenuBtn', {state:'attached', timeout:10000});
   await desktop.evaluate(() => {
     document.getElementById('authGate')?.setAttribute('hidden','');
     document.getElementById('app')?.classList.remove('auth-locked');
