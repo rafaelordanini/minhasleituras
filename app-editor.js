@@ -76,7 +76,7 @@
     subtitle.value = doc?.subtitle ?? doc?.dek ?? '';
     content.innerHTML = doc?.html || '';
     modal.classList.add('open');
-    setTimeout(() => (doc ? title : title).focus(), 40);
+    setTimeout(() => title.focus(), 40);
   }
 
   function closeTextEditor() {
@@ -111,6 +111,7 @@
       return null;
     }
 
+    const wasEditing = Boolean(editingDocId);
     const mins = readingMinutes(textContent);
     let doc = editingDocId ? state.docs.find(item => item.id === editingDocId) : null;
     if (doc) {
@@ -146,7 +147,7 @@
     await saveDoc(doc);
     closeTextEditor();
     openDocument(doc.id);
-    toast(editingDocId ? 'Alterações salvas' : 'Texto salvo na biblioteca');
+    toast(wasEditing ? 'Alterações salvas' : 'Texto salvo na biblioteca');
     return doc;
   }
 
