@@ -1,0 +1,31 @@
+name: Cloud Sync Test
+
+on:
+  push:
+    branches:
+      - feature/cloud-sync
+  pull_request:
+    paths:
+      - 'app-cloud.js'
+      - 'api/library.js'
+      - 'tests/cloud-sync.test.js'
+      - 'index.html'
+      - '.github/workflows/cloud-sync-test.yml'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Syntax checks
+        run: |
+          node --check app-cloud.js
+          node --check api/library.js
+      - name: Cloud sync tests
+        run: node --test tests/cloud-sync.test.js
