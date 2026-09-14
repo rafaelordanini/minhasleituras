@@ -3,14 +3,27 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Leitura.</title>
+<title>Minhas Leituras</title>
 <link rel="stylesheet" href="/styles.css?v=20260914-4" />
 <link rel="stylesheet" href="/fixes.css?v=20260914-4" />
 <link rel="stylesheet" href="/read-status.css?v=20260914-6" />
 <link rel="stylesheet" href="/reading-tools.css?v=20260914-7" />
+<link rel="stylesheet" href="/auth.css?v=20260914-8" />
 </head>
 <body>
-<div class="app" id="app">
+<div class="auth-gate" id="authGate" aria-label="Acesso ao Minhas Leituras">
+  <div class="auth-shell">
+    <h1 class="auth-title">Minhas Leituras</h1>
+    <button class="auth-enter" id="authEnterBtn" type="button">Entrar</button>
+    <form class="auth-form" id="authForm" autocomplete="off">
+      <input class="auth-password" id="authPassword" type="password" autocomplete="current-password" aria-label="Senha" placeholder="Senha" />
+      <button class="auth-submit" id="authSubmit" type="submit">Entrar</button>
+    </form>
+    <div class="auth-message" id="authMessage" aria-live="polite"></div>
+  </div>
+</div>
+
+<div class="app auth-locked" id="app" aria-hidden="true">
   <aside class="left" id="leftPanel">
     <div class="brand"><div class="brand-mark">Leitura.</div><button class="mini-button" id="newBtn" title="Adicionar texto">＋</button></div>
     <div class="section">
@@ -66,8 +79,9 @@
 <script src="/app-features.js?v=20260914-4"></script>
 <script src="/app-highlight-fix.js?v=20260914-5"></script>
 <script src="/app-read-status.js?v=20260914-6"></script>
-<script src="/app-reading-tools.js?v=20260914-7"></script>
-<script src="/app-init.js?v=20260914-4"></script>
+<script src="/app-reading-tools.js?v=20260914-8"></script>
+<script src="/app-init.js?v=20260914-8"></script>
 <script src="/app-fixes.js?v=20260914-4"></script>
+<script src="/app-auth.js?v=20260914-8"></script>
 </body>
 </html>
