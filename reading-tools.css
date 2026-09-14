@@ -1,0 +1,12 @@
+#readingListNav.active{background:#e7e7e1;font-weight:600}
+.marker-action.is-active{background:#b42318;color:#fff;border-color:#b42318}
+.marker-action.is-active:hover{background:#981b12}
+.marker-resume{border-color:#d7a19c;color:#9e2117}
+.marker-resume:hover{background:#fff4f2;border-color:#b42318;color:#7f1d14}
+.article-body.marker-placement-mode{cursor:crosshair!important;outline:1px dashed rgba(180,35,24,.28);outline-offset:12px}
+.article-body.marker-placement-mode *{cursor:crosshair!important}
+.reading-marker{display:inline-block!important;position:relative!important;width:0!important;height:1em!important;overflow:visible!important;vertical-align:baseline!important;pointer-events:none!important;user-select:none!important;-webkit-user-select:none!important}
+.reading-marker::before{content:"";position:absolute;z-index:2;left:-5px;top:-.42em;width:10px;height:23px;background:#c5221f;clip-path:polygon(0 0,100% 0,100% 100%,50% 76%,0 100%);filter:drop-shadow(0 1px 1px rgba(0,0,0,.18))}
+.reading-marker::after{content:"";position:absolute;left:-10px;right:-10px;top:1.05em;border-top:2px solid rgba(197,34,31,.25)}
+.library-page.reading-list-view .library-kicker::after{content:" · não lidos";color:#a33}
+@media(max-width:760px){.marker-action span,.marker-resume span{display:none}}
