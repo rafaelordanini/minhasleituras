@@ -8,6 +8,23 @@
   const message = document.getElementById('authMessage');
   const authCrypto = window.LeituraAuthCrypto;
 
+  function loadMobileAssets() {
+    if (!document.querySelector('link[data-leitura-mobile]')) {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = '/mobile.css?v=20260914-12';
+      link.dataset.leituraMobile = 'true';
+      document.head.appendChild(link);
+    }
+    if (!document.querySelector('script[data-leitura-mobile]')) {
+      const script = document.createElement('script');
+      script.src = '/app-mobile.js?v=20260914-12';
+      script.defer = true;
+      script.dataset.leituraMobile = 'true';
+      document.body.appendChild(script);
+    }
+  }
+
   function setMessage(text = '', isError = false) {
     if (!message) return;
     message.textContent = text;
@@ -121,5 +138,6 @@
   });
   form?.addEventListener('submit', event => { event.preventDefault(); login(); });
 
+  loadMobileAssets();
   checkSession();
 })();
