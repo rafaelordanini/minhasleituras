@@ -104,6 +104,12 @@
     if (!doc?.id || doc.id === 'demo') return;
     addStored(DIRTY_DOCS_KEY, doc.id);
     try {
+      const dirtyTags = storedSet(DIRTY_TAGS_KEY);
+      for (const tagId of (doc.tagIds || [])) {
+        if (!dirtyTags.has(tagId)) continue;
+        const tag = state.tags.find(item => item.id === tagId);
+        if (tag) await syncTagNow(JSON.parse(JSON.stringify(tag)));
+      }
       await cloudRequest('upsert_doc', { doc });
       removeStored(DIRTY_DOCS_KEY, doc.id);
       removeStored(DELETED_DOCS_KEY, doc.id);
@@ -197,7 +203,10 @@
 
       if (cloudEmpty) {
         const migrated = await migrateLocalLibrary(localDocs, localTags);
-        if (migrated) snapshot = await cloudRequest('pull');
+        if (migrated) {
+          snapshot = await cloudRequest('pull');
+          if (typeof toast === 'function') toast('Biblioteca sincronizada na nuvem', 3200);
+        }
       } else {
         const replayed = await replayPending(localDocs, localTags);
         if (replayed) snapshot = await cloudRequest('pull');
