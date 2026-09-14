@@ -9,6 +9,7 @@
 <link rel="stylesheet" href="/read-status.css?v=20260914-6" />
 <link rel="stylesheet" href="/reading-tools.css?v=20260914-7" />
 <link rel="stylesheet" href="/auth.css?v=20260914-8" />
+<link rel="stylesheet" href="/editor.css?v=20260914-9" />
 </head>
 <body>
 <div class="auth-gate" id="authGate" aria-label="Acesso ao Minhas Leituras">
@@ -34,6 +35,7 @@
     <div class="section">
       <button class="upload" id="uploadBtn">Enviar arquivo</button>
       <button class="upload secondary" id="linkBtn">Adicionar link</button>
+      <button class="upload secondary manual-btn" id="manualBtn">Adicionar manualmente</button>
       <input class="hidden" id="fileInput" type="file" accept=".txt,.md,.html,.htm" />
     </div>
     <div class="section">
@@ -51,6 +53,7 @@
     <div class="topbar">
       <div class="crumb" id="crumb">Biblioteca</div>
       <div class="top-actions" id="readerActions">
+        <button class="icon-btn edit-reader-btn" id="editDocBtn" title="Editar este texto">Editar</button>
         <button class="icon-btn" id="tagDocBtn" title="Vincular ou remover etiquetas deste texto">🏷 Vincular etiqueta</button>
         <button class="icon-btn" id="listenBtn">▶ Ouvir</button>
         <button class="icon-btn" id="focusBtn">Foco</button>
@@ -74,12 +77,25 @@
 <div class="modal" id="urlModal"><div class="modal-card"><h3>Adicionar um texto por link</h3><p>O app identifica o texto principal da página e salva uma cópia na sua biblioteca.</p><div class="modal-row"><input id="urlInput" type="url" placeholder="https://…" /></div><div class="modal-actions"><button class="btn" data-close="urlModal">Cancelar</button><button class="btn primary" id="importUrl">Importar</button></div></div></div>
 <div class="modal" id="tagModal"><div class="modal-card"><h3>Criar etiqueta</h3><p>Use etiquetas para organizar sua biblioteca por tema, curso, projeto ou assunto. Depois de criar, abra o texto e clique em <strong>🏷 Vincular etiqueta</strong> no topo para associá-la.</p><div class="modal-row"><input id="tagNameInput" type="text" placeholder="Ex.: Política Internacional" /></div><div class="color-row"><label for="tagColorInput">Cor da etiqueta</label><input class="color-input" id="tagColorInput" type="color" value="#315c8c" /></div><div class="modal-actions"><button class="btn" data-close="tagModal">Cancelar</button><button class="btn primary" id="saveTagBtn">Criar etiqueta</button></div></div></div>
 <div class="modal" id="tagPickerModal"><div class="modal-card"><h3>Etiquetas do texto</h3><p>Marque uma ou mais etiquetas para este texto.</p><div class="tag-picker-list" id="tagPickerList"></div><div class="modal-actions"><button class="btn" id="createTagFromPicker">Nova etiqueta</button><button class="btn primary" data-close="tagPickerModal">Concluir</button></div></div></div>
+<div class="modal" id="textEditorModal">
+  <div class="modal-card editor-card">
+    <h3 id="editorModalTitle">Adicionar texto manualmente</h3>
+    <p class="editor-intro">Preencha os dados abaixo. O subtítulo pode ser usado para o autor, uma frase de apresentação ou outra informação breve.</p>
+    <div class="editor-fields">
+      <div class="editor-field"><label for="editorTitleInput">Título</label><input id="editorTitleInput" type="text" placeholder="Título do texto" /></div>
+      <div class="editor-field"><label for="editorSubtitleInput">Subtítulo</label><input id="editorSubtitleInput" type="text" placeholder="Autor, frase ou subtítulo" /></div>
+      <div class="editor-field"><label for="editorContent">Texto</label><div class="editor-content" id="editorContent" contenteditable="true" role="textbox" aria-multiline="true" data-placeholder="Digite ou cole o texto aqui…"></div></div>
+    </div>
+    <div class="modal-actions"><button class="btn" id="cancelTextEditorBtn">Cancelar</button><button class="btn primary" id="saveTextEditorBtn">Salvar</button></div>
+  </div>
+</div>
 <div class="toast" id="toast"></div>
 <script src="/app-core.js?v=20260914-4"></script>
 <script src="/app-features.js?v=20260914-4"></script>
 <script src="/app-highlight-fix.js?v=20260914-5"></script>
 <script src="/app-read-status.js?v=20260914-6"></script>
 <script src="/app-reading-tools.js?v=20260914-8"></script>
+<script src="/app-editor.js?v=20260914-9"></script>
 <script src="/app-init.js?v=20260914-8"></script>
 <script src="/app-fixes.js?v=20260914-4"></script>
 <script src="/auth-crypto.js?v=20260914-8"></script>
