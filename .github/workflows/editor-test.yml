@@ -1,0 +1,29 @@
+name: Manual Editor Test
+
+on:
+  push:
+    branches:
+      - feature/manual-editor
+  pull_request:
+    paths:
+      - 'app-editor.js'
+      - 'editor.css'
+      - 'index.html'
+      - 'tests/editor.test.js'
+      - '.github/workflows/editor-test.yml'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Syntax check
+        run: node --check app-editor.js
+      - name: Editor tests
+        run: node --test tests/editor.test.js
