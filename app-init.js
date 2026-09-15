@@ -57,12 +57,15 @@ function setupEvents() {
   document.addEventListener('scroll', () => { el('floatingHL').style.display = 'none'; }, true);
 
   el('listenBtn').addEventListener('click', () => {
-    const doc = activeDoc(); const body = el('articleBody'); if (!doc || !body) return;
-    if (!('speechSynthesis' in window)) { toast('Áudio não suportado neste navegador'); return; }
-    if (state.speaking) { speechSynthesis.cancel(); state.speaking = false; el('listenBtn').textContent = '▶ Ouvir'; return; }
-    const u = new SpeechSynthesisUtterance(`${doc.title}. ${body.innerText}`); u.lang = 'pt-BR';
-    u.onend = () => { state.speaking = false; el('listenBtn').textContent = '▶ Ouvir'; };
-    speechSynthesis.speak(u); state.speaking = true; el('listenBtn').textContent = '■ Parar';
+    const doc = activeDoc();
+    const body = el('articleBody');
+    const button = el('listenBtn');
+    if (!doc || !body || !button) return;
+    if (!window.LeiturTTS?.toggle) {
+      toast('O recurso de áudio não pôde ser carregado.');
+      return;
+    }
+    window.LeiturTTS.toggle({ doc, body, button, appState:state, notify:toast });
   });
   el('focusBtn').addEventListener('click', () => {
     state.focus = !state.focus;
