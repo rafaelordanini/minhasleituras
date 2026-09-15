@@ -40,6 +40,14 @@ const window = { speechSynthesis, SpeechSynthesisUtterance: MockUtterance };
 const context = vm.createContext({ window, Intl, Set, Map, Promise, String, Object, Array, Math, RegExp, Date, console, setTimeout, clearTimeout });
 vm.runInContext(source, context, { filename: 'app-tts.js' });
 
+async function waitUntil(predicate, timeoutMs = 2500) {
+  const started = Date.now();
+  while (!predicate()) {
+    if (Date.now() - started > timeoutMs) throw new Error('timeout esperando a fila de TTS terminar');
+    await new Promise(resolve => setTimeout(resolve, 20));
+  }
+}
+
 (async () => {
   const api = window.LeiturTTS;
   assert.ok(api?.toggle, 'API de TTS deve carregar no navegador');
@@ -69,13 +77,12 @@ vm.runInContext(source, context, { filename: 'app-tts.js' });
   assert.equal(result.locale, 'fr-FR');
   assert.ok(result.chunks > 1, 'texto longo deve ser falado em vários blocos');
 
-  await new Promise(resolve => setTimeout(resolve, 120));
+  await waitUntil(() => appState.speaking === false);
   assert.ok(spoken.length > 1, 'speechSynthesis.speak deve ser chamado para vários blocos');
   assert.ok(spoken.every(item => item.lang === 'fr-FR'));
   assert.ok(spoken.every(item => item.voice === 'Français France'));
   assert.ok(resumed >= 1, 'speechSynthesis.resume deve ser chamado antes de iniciar');
   assert.equal(notifications.length, 0);
-  assert.equal(appState.speaking, false);
   assert.equal(button.textContent, '▶ Ouvir');
 
   console.log(`French delayed voice: ${spoken.length} chunks dispatched in fr-FR`);
