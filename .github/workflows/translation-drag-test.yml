@@ -1,0 +1,29 @@
+name: translation-drag-test
+
+on:
+  pull_request:
+    paths:
+      - 'app-translation-drag.js'
+      - 'translation-drag.css'
+      - 'app-auth.js'
+      - 'tests/translation-drag.test.mjs'
+      - '.github/workflows/translation-drag-test.yml'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install Playwright
+        run: npm install --no-save playwright@1.55.0
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Syntax check
+        run: node --check app-translation-drag.js && node --check app-auth.js
+      - name: Start static server
+        run: python3 -m http.server 4173 >/tmp/leitura-http.log 2>&1 &
+      - name: Translation drag browser test
+        run: node tests/translation-drag.test.mjs
