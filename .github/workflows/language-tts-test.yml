@@ -16,3 +16,5 @@ jobs:
         run: node --check app-tts.js && node --check app-init.js
       - name: Language and voice tests
         run: node tests/language-tts.test.cjs
+      - name: Delayed French voice browser mock
+        run: node tests/tts-browser-mock.test.cjs

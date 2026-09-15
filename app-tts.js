@@ -1,47 +1,19 @@
 (() => {
   const DEFAULT_LOCALES = {
-    pt: 'pt-BR',
-    es: 'es-MX',
-    fr: 'fr-FR',
-    en: 'en-US',
-    it: 'it-IT',
-    de: 'de-DE',
-    ru: 'ru-RU',
-    ja: 'ja-JP',
-    ko: 'ko-KR',
-    zh: 'zh-CN',
-    ar: 'ar-SA',
-    el: 'el-GR'
+    pt: 'pt-BR', es: 'es-MX', fr: 'fr-FR', en: 'en-US', it: 'it-IT', de: 'de-DE',
+    ru: 'ru-RU', ja: 'ja-JP', ko: 'ko-KR', zh: 'zh-CN', ar: 'ar-SA', el: 'el-GR'
   };
 
   const LANGUAGE_NAMES = {
-    pt: 'português',
-    es: 'espanhol',
-    fr: 'francês',
-    en: 'inglês',
-    it: 'italiano',
-    de: 'alemão',
-    ru: 'russo',
-    ja: 'japonês',
-    ko: 'coreano',
-    zh: 'chinês',
-    ar: 'árabe',
-    el: 'grego'
+    pt: 'português', es: 'espanhol', fr: 'francês', en: 'inglês', it: 'italiano', de: 'alemão',
+    ru: 'russo', ja: 'japonês', ko: 'coreano', zh: 'chinês', ar: 'árabe', el: 'grego'
   };
 
   const PREFERRED_VOICE_LOCALES = {
-    pt: ['pt-BR', 'pt-PT'],
-    es: ['es-MX', 'es-US', 'es-ES', 'es-AR'],
-    fr: ['fr-FR', 'fr-CA'],
-    en: ['en-US', 'en-GB', 'en-AU', 'en-CA'],
-    it: ['it-IT'],
-    de: ['de-DE', 'de-AT', 'de-CH'],
-    ru: ['ru-RU'],
-    ja: ['ja-JP'],
-    ko: ['ko-KR'],
-    zh: ['zh-CN', 'zh-TW', 'zh-HK'],
-    ar: ['ar-SA', 'ar-EG'],
-    el: ['el-GR']
+    pt: ['pt-BR', 'pt-PT'], es: ['es-MX', 'es-US', 'es-ES', 'es-AR'], fr: ['fr-FR', 'fr-CA'],
+    en: ['en-US', 'en-GB', 'en-AU', 'en-CA'], it: ['it-IT'], de: ['de-DE', 'de-AT', 'de-CH'],
+    ru: ['ru-RU'], ja: ['ja-JP'], ko: ['ko-KR'], zh: ['zh-CN', 'zh-TW', 'zh-HK'],
+    ar: ['ar-SA', 'ar-EG'], el: ['el-GR']
   };
 
   const PROFILES = {
@@ -60,11 +32,8 @@
   function canonicalizeTag(tag = '') {
     const raw = String(tag).trim().replace(/_/g, '-');
     if (!raw) return '';
-    try {
-      return Intl.getCanonicalLocales(raw)[0] || raw;
-    } catch {
-      return raw;
-    }
+    try { return Intl.getCanonicalLocales(raw)[0] || raw; }
+    catch { return raw; }
   }
 
   function normalizeDeclaredLanguage(tag = '') {
@@ -76,10 +45,7 @@
   }
 
   function tokenize(text = '') {
-    return String(text)
-      .toLocaleLowerCase()
-      .replace(/[’‘]/g, "'")
-      .match(/[\p{L}\p{M}']+/gu) || [];
+    return String(text).toLocaleLowerCase().replace(/[’‘]/g, "'").match(/[\p{L}\p{M}']+/gu) || [];
   }
 
   function detectScriptLanguage(text = '') {
@@ -96,28 +62,21 @@
   function detectLanguageFromText(text = '') {
     const sample = String(text).replace(/\s+/g, ' ').trim().slice(0, 14000);
     if (!sample) return { locale: 'pt-BR', language: 'pt', confidence: 0, source: 'fallback' };
-
     const scriptLocale = detectScriptLanguage(sample);
-    if (scriptLocale) {
-      return { locale: scriptLocale, language: baseLanguage(scriptLocale), confidence: 0.98, source: 'script' };
-    }
+    if (scriptLocale) return { locale: scriptLocale, language: baseLanguage(scriptLocale), confidence: 0.98, source: 'script' };
 
     const tokens = tokenize(sample);
     const scores = Object.fromEntries(Object.keys(PROFILES).map(code => [code, 0]));
-
     for (const token of tokens) {
-      for (const [code, words] of Object.entries(PROFILES)) {
-        if (words.has(token)) scores[code] += 1;
-      }
+      for (const [code, words] of Object.entries(PROFILES)) if (words.has(token)) scores[code] += 1;
     }
-
     if (/[ãõ]/iu.test(sample)) scores.pt += 5;
     if (/\b(não|também|você|vocês|uma|umas|pela|pelo|ainda)\b/iu.test(sample)) scores.pt += 3;
     if (/ñ/iu.test(sample)) scores.es += 7;
     if (/[¿¡]/u.test(sample)) scores.es += 4;
     if (/\b(una|unas|también|usted|ustedes|aunque|hacia|desde|hasta)\b/iu.test(sample)) scores.es += 3;
     if (/\b(?:[ldjtmnsc]|qu)['’][\p{L}]/giu.test(sample)) scores.fr += 6;
-    if (/\b(avec|dans|depuis|étaient|très|aux|une|des|mais|pas)\b/iu.test(sample)) scores.fr += 3;
+    if (/\b(avec|dans|depuis|étaient|très|aux|une|des|mais|pas|france|ukraine|poutine|militaire)\b/iu.test(sample)) scores.fr += 3;
     if (/\b(the|this|that|with|from|were|their|have|has|would|could|should)\b/iu.test(sample)) scores.en += 3;
     if (/\b(gli|della|delle|degli|perché|anche|sono|questa|questo)\b/iu.test(sample)) scores.it += 4;
     if (/[äöüß]/iu.test(sample)) scores.de += 6;
@@ -126,32 +85,15 @@
     const ranked = Object.entries(scores).sort((a, b) => b[1] - a[1]);
     const [bestCode, bestScore] = ranked[0];
     const secondScore = ranked[1]?.[1] || 0;
-
-    if (bestScore < 2) {
-      return { locale: 'pt-BR', language: 'pt', confidence: 0.15, source: 'fallback', scores };
-    }
-
+    if (bestScore < 2) return { locale: 'pt-BR', language: 'pt', confidence: 0.15, source: 'fallback', scores };
     const margin = bestScore - secondScore;
     const confidence = Math.max(0.35, Math.min(0.99, 0.5 + margin / Math.max(6, bestScore + secondScore)));
-    return {
-      locale: DEFAULT_LOCALES[bestCode] || bestCode,
-      language: bestCode,
-      confidence,
-      source: 'text',
-      scores
-    };
+    return { locale: DEFAULT_LOCALES[bestCode] || bestCode, language: bestCode, confidence, source: 'text', scores };
   }
 
   function resolveLanguage({ declaredLanguage = '', text = '' } = {}) {
     const declared = normalizeDeclaredLanguage(declaredLanguage);
-    if (declared) {
-      return {
-        locale: declared,
-        language: baseLanguage(declared),
-        confidence: 1,
-        source: 'declared'
-      };
-    }
+    if (declared) return { locale: declared, language: baseLanguage(declared), confidence: 1, source: 'declared' };
     return detectLanguageFromText(text);
   }
 
@@ -160,7 +102,6 @@
     const wanted = canonicalizeTag(locale);
     const base = baseLanguage(wanted);
     const preferred = PREFERRED_VOICE_LOCALES[base] || [];
-
     const scored = voices.map((voice, index) => {
       const voiceLang = canonicalizeTag(voice?.lang || '');
       const voiceBase = baseLanguage(voiceLang);
@@ -173,34 +114,74 @@
       if (voice?.localService) score += 4;
       return { voice, index, score };
     }).filter(item => item.score >= 500);
-
     scored.sort((a, b) => b.score - a.score || a.index - b.index);
     return scored[0]?.voice || null;
   }
 
   function languageName(locale = '') {
-    const base = baseLanguage(locale);
-    return LANGUAGE_NAMES[base] || locale || 'idioma detectado';
+    return LANGUAGE_NAMES[baseLanguage(locale)] || locale || 'idioma detectado';
   }
 
-  const api = {
-    baseLanguage,
-    canonicalizeTag,
-    normalizeDeclaredLanguage,
-    detectLanguageFromText,
-    resolveLanguage,
-    chooseVoice,
-    languageName
-  };
+  function splitSpeechText(text = '', maxChars = 260) {
+    const clean = String(text).replace(/\s+/g, ' ').trim();
+    if (!clean) return [];
+    const sentences = clean.match(/[^.!?…]+[.!?…]+|[^.!?…]+$/gu) || [clean];
+    const chunks = [];
+    let current = '';
+    const pushCurrent = () => { if (current.trim()) chunks.push(current.trim()); current = ''; };
 
+    for (const sentenceRaw of sentences) {
+      const sentence = sentenceRaw.trim();
+      if (!sentence) continue;
+      if (sentence.length <= maxChars) {
+        if (!current || (current.length + 1 + sentence.length) <= maxChars) current = current ? `${current} ${sentence}` : sentence;
+        else { pushCurrent(); current = sentence; }
+        continue;
+      }
+      pushCurrent();
+      const words = sentence.split(/\s+/);
+      let part = '';
+      for (const word of words) {
+        if (!part || (part.length + 1 + word.length) <= maxChars) part = part ? `${part} ${word}` : word;
+        else { chunks.push(part); part = word; }
+      }
+      if (part) chunks.push(part);
+    }
+    pushCurrent();
+    return chunks;
+  }
+
+  const api = { baseLanguage, canonicalizeTag, normalizeDeclaredLanguage, detectLanguageFromText, resolveLanguage, chooseVoice, languageName, splitSpeechText };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   if (typeof window === 'undefined') return;
 
   let voices = [];
+  let sessionCounter = 0;
+
   function refreshVoices() {
     try { voices = window.speechSynthesis?.getVoices?.() || []; }
     catch { voices = []; }
     return voices;
+  }
+
+  function waitForVoices(timeoutMs = 1200) {
+    const immediate = refreshVoices();
+    if (immediate.length) return Promise.resolve(immediate);
+    const synth = window.speechSynthesis;
+    if (!synth?.addEventListener) return Promise.resolve([]);
+    return new Promise(resolve => {
+      let done = false;
+      const finish = () => {
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        synth.removeEventListener?.('voiceschanged', onVoices);
+        resolve(refreshVoices());
+      };
+      const onVoices = () => { if (refreshVoices().length) finish(); };
+      const timer = setTimeout(finish, timeoutMs);
+      synth.addEventListener('voiceschanged', onVoices, { once: false });
+    });
   }
 
   refreshVoices();
@@ -211,7 +192,15 @@
     if (button) button.textContent = '▶ Ouvir';
   }
 
-  function toggle({ doc, body, button, appState, notify } = {}) {
+  function humanizeSpeechError(error = '') {
+    const code = String(error || '').toLowerCase();
+    if (code.includes('language') || code.includes('voice') || code.includes('synthesis')) return 'O navegador não conseguiu iniciar a voz desse idioma. Verifique se há uma voz correspondente instalada no sistema.';
+    if (code.includes('audio-busy')) return 'O sistema de áudio está ocupado. Tente novamente em alguns segundos.';
+    if (code.includes('not-allowed')) return 'O navegador bloqueou a reprodução de áudio. Clique novamente em Ouvir.';
+    return 'A leitura em voz alta foi interrompida pelo navegador.';
+  }
+
+  async function toggle({ doc, body, button, appState, notify } = {}) {
     const synth = window.speechSynthesis;
     if (!synth || typeof window.SpeechSynthesisUtterance !== 'function') {
       notify?.('Áudio não suportado neste navegador');
@@ -219,6 +208,7 @@
     }
 
     if (appState?.speaking) {
+      sessionCounter += 1;
       synth.cancel();
       resetButton(button, appState);
       return null;
@@ -231,33 +221,72 @@
       return null;
     }
 
-    const detected = resolveLanguage({
-      declaredLanguage: doc?.language || doc?.lang || '',
-      text: `${doc?.title || ''} ${bodyText}`
-    });
+    const detected = resolveLanguage({ declaredLanguage: doc?.language || doc?.lang || '', text: `${doc?.title || ''} ${bodyText}` });
     const locale = detected.locale || 'pt-BR';
-    const availableVoices = refreshVoices();
+    const sessionId = ++sessionCounter;
+    if (appState) appState.speaking = true;
+    if (button) {
+      button.textContent = '… Preparando';
+      button.dataset.ttsLanguage = locale;
+      button.title = `Preparando voz em ${languageName(locale)}`;
+    }
+
+    const availableVoices = await waitForVoices(1200);
+    if (sessionId !== sessionCounter || !appState?.speaking) return null;
     const voice = chooseVoice(availableVoices, locale);
+    const chunks = splitSpeechText(speechText);
+    if (!chunks.length) {
+      resetButton(button, appState);
+      return null;
+    }
 
-    const utterance = new window.SpeechSynthesisUtterance(speechText);
-    utterance.lang = voice?.lang || locale;
-    if (voice) utterance.voice = voice;
-
-    const finish = () => resetButton(button, appState);
-    utterance.onend = finish;
-    utterance.onerror = finish;
-
-    if (body) body.setAttribute('lang', utterance.lang);
+    if (body) body.setAttribute('lang', voice?.lang || locale);
     if (button) {
       button.textContent = '■ Parar';
-      button.dataset.ttsLanguage = utterance.lang;
-      button.title = `Ouvir em ${languageName(utterance.lang)}${voice?.name ? ` — ${voice.name}` : ''}`;
+      button.dataset.ttsLanguage = voice?.lang || locale;
+      button.title = `Ouvir em ${languageName(voice?.lang || locale)}${voice?.name ? ` — ${voice.name}` : ''}`;
     }
-    if (appState) appState.speaking = true;
 
-    synth.speak(utterance);
-    return { utterance, voice, detected, locale: utterance.lang };
+    try { synth.cancel(); synth.resume?.(); } catch {}
+
+    let index = 0;
+    const speakNext = () => {
+      if (sessionId !== sessionCounter || !appState?.speaking) return;
+      if (index >= chunks.length) {
+        resetButton(button, appState);
+        return;
+      }
+
+      const utterance = new window.SpeechSynthesisUtterance(chunks[index++]);
+      utterance.lang = voice?.lang || locale;
+      if (voice) utterance.voice = voice;
+      utterance.volume = 1;
+      utterance.rate = 1;
+      utterance.pitch = 1;
+      utterance.onend = () => {
+        if (sessionId !== sessionCounter) return;
+        setTimeout(speakNext, 20);
+      };
+      utterance.onerror = event => {
+        if (sessionId !== sessionCounter) return;
+        const error = event?.error || 'synthesis-failed';
+        sessionCounter += 1;
+        try { synth.cancel(); } catch {}
+        resetButton(button, appState);
+        notify?.(humanizeSpeechError(error), 6500);
+      };
+      try {
+        synth.speak(utterance);
+      } catch (error) {
+        sessionCounter += 1;
+        resetButton(button, appState);
+        notify?.(humanizeSpeechError(error?.message), 6500);
+      }
+    };
+
+    speakNext();
+    return { voice, detected, locale: voice?.lang || locale, chunks: chunks.length };
   }
 
-  window.LeiturTTS = { ...api, toggle, refreshVoices };
+  window.LeiturTTS = { ...api, toggle, refreshVoices, waitForVoices };
 })();
