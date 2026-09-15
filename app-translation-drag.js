@@ -5,6 +5,7 @@
 
   const MARGIN = 8;
   let dragging = false;
+  let dragMode = null;
   let pointerId = null;
   let offsetX = 0;
   let offsetY = 0;
@@ -26,47 +27,77 @@
     card.style.bottom = 'auto';
   }
 
-  function startDrag(event) {
-    if (event.button !== undefined && event.button !== 0) return;
-    if (!card.classList.contains('open')) return;
+  function beginDrag(clientX, clientY, mode, id = null) {
+    if (!card.classList.contains('open')) return false;
     const rect = card.getBoundingClientRect();
     dragging = true;
-    pointerId = event.pointerId;
-    offsetX = event.clientX - rect.left;
-    offsetY = event.clientY - rect.top;
+    dragMode = mode;
+    pointerId = id;
+    offsetX = clientX - rect.left;
+    offsetY = clientY - rect.top;
     card.classList.add('is-dragging');
-    try { handle.setPointerCapture?.(event.pointerId); } catch {}
-    event.preventDefault();
+    return true;
   }
 
-  function moveDrag(event) {
-    if (!dragging || (pointerId !== null && event.pointerId !== pointerId)) return;
+  function moveTo(clientX, clientY) {
+    if (!dragging) return;
     const rect = card.getBoundingClientRect();
     const maxLeft = window.innerWidth - rect.width - MARGIN;
     const maxTop = window.innerHeight - rect.height - MARGIN;
-    const left = clamp(event.clientX - offsetX, MARGIN, maxLeft);
-    const top = clamp(event.clientY - offsetY, MARGIN, maxTop);
+    const left = clamp(clientX - offsetX, MARGIN, maxLeft);
+    const top = clamp(clientY - offsetY, MARGIN, maxTop);
     card.style.left = `${left}px`;
     card.style.top = `${top}px`;
     card.style.right = 'auto';
     card.style.bottom = 'auto';
-    event.preventDefault();
   }
 
-  function endDrag(event) {
+  function finishDrag() {
     if (!dragging) return;
-    if (pointerId !== null && event.pointerId !== undefined && event.pointerId !== pointerId) return;
     dragging = false;
-    try { handle.releasePointerCapture?.(pointerId); } catch {}
+    dragMode = null;
     pointerId = null;
     card.classList.remove('is-dragging');
     clampCardToViewport();
   }
 
-  handle.addEventListener('pointerdown', startDrag);
-  document.addEventListener('pointermove', moveDrag, {capture:true, passive:false});
-  document.addEventListener('pointerup', endDrag, true);
-  document.addEventListener('pointercancel', endDrag, true);
+  // Mouse: listeners próprios, mais consistentes entre navegadores desktop e testes reais.
+  handle.addEventListener('mousedown', event => {
+    if (event.button !== 0) return;
+    if (!beginDrag(event.clientX, event.clientY, 'mouse')) return;
+    event.preventDefault();
+  });
+  document.addEventListener('mousemove', event => {
+    if (!dragging || dragMode !== 'mouse') return;
+    moveTo(event.clientX, event.clientY);
+    event.preventDefault();
+  }, { capture:true, passive:false });
+  document.addEventListener('mouseup', () => {
+    if (dragging && dragMode === 'mouse') finishDrag();
+  }, true);
+
+  // Toque/caneta: Pointer Events preservam um gesto único e evitam rolar a página durante o arraste.
+  handle.addEventListener('pointerdown', event => {
+    if (event.pointerType === 'mouse') return;
+    if (event.button !== undefined && event.button !== 0) return;
+    if (!beginDrag(event.clientX, event.clientY, 'pointer', event.pointerId)) return;
+    try { handle.setPointerCapture?.(event.pointerId); } catch {}
+    event.preventDefault();
+  });
+  document.addEventListener('pointermove', event => {
+    if (!dragging || dragMode !== 'pointer' || event.pointerId !== pointerId) return;
+    moveTo(event.clientX, event.clientY);
+    event.preventDefault();
+  }, { capture:true, passive:false });
+  document.addEventListener('pointerup', event => {
+    if (!dragging || dragMode !== 'pointer' || event.pointerId !== pointerId) return;
+    try { handle.releasePointerCapture?.(pointerId); } catch {}
+    finishDrag();
+  }, true);
+  document.addEventListener('pointercancel', event => {
+    if (!dragging || dragMode !== 'pointer' || event.pointerId !== pointerId) return;
+    finishDrag();
+  }, true);
 
   window.addEventListener('resize', () => requestAnimationFrame(clampCardToViewport));
   window.addEventListener('orientationchange', () => setTimeout(clampCardToViewport, 100));
@@ -75,12 +106,15 @@
     if (!mutations.some(m => m.attributeName === 'class')) return;
     if (card.classList.contains('open')) {
       requestAnimationFrame(() => requestAnimationFrame(clampCardToViewport));
+    } else if (dragging) {
+      finishDrag();
     }
   });
   observer.observe(card, { attributes:true, attributeFilter:['class'] });
 
   window.LeiturTranslationDrag = {
     clamp: clampCardToViewport,
-    isDragging: () => dragging
+    isDragging: () => dragging,
+    mode: () => dragMode
   };
 })();
