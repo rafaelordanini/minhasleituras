@@ -1,0 +1,42 @@
+.translation-card{
+  max-height:calc(100dvh - 24px);
+  overflow:hidden;
+  display:none;
+  flex-direction:column;
+}
+.translation-card.open{display:flex}
+.translation-label{
+  cursor:grab;
+  user-select:none;
+  -webkit-user-select:none;
+  touch-action:none;
+  padding:2px 32px 8px 0;
+  flex:0 0 auto;
+}
+.translation-label:active{cursor:grabbing}
+.translation-label::after{
+  content:" · arraste";
+  opacity:.5;
+  font-weight:500;
+  letter-spacing:.02em;
+  text-transform:none;
+}
+.translation-text{
+  overflow:auto;
+  overscroll-behavior:contain;
+  -webkit-overflow-scrolling:touch;
+  max-height:calc(100dvh - 86px);
+  padding-right:4px;
+}
+.translation-card.is-dragging{
+  transition:none!important;
+  cursor:grabbing;
+  box-shadow:0 20px 56px rgba(0,0,0,.22);
+}
+@media(max-width:760px){
+  .translation-card{
+    width:min(420px,calc(100vw - 20px));
+    max-height:calc(100dvh - 20px);
+  }
+  .translation-text{max-height:calc(100dvh - 82px)}
+}
