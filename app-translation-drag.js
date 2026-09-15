@@ -35,7 +35,7 @@
     offsetX = event.clientX - rect.left;
     offsetY = event.clientY - rect.top;
     card.classList.add('is-dragging');
-    handle.setPointerCapture?.(event.pointerId);
+    try { handle.setPointerCapture?.(event.pointerId); } catch {}
     event.preventDefault();
   }
 
@@ -64,9 +64,9 @@
   }
 
   handle.addEventListener('pointerdown', startDrag);
-  handle.addEventListener('pointermove', moveDrag);
-  handle.addEventListener('pointerup', endDrag);
-  handle.addEventListener('pointercancel', endDrag);
+  document.addEventListener('pointermove', moveDrag, {capture:true, passive:false});
+  document.addEventListener('pointerup', endDrag, true);
+  document.addEventListener('pointercancel', endDrag, true);
 
   window.addEventListener('resize', () => requestAnimationFrame(clampCardToViewport));
   window.addEventListener('orientationchange', () => setTimeout(clampCardToViewport, 100));
