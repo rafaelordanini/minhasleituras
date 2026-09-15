@@ -25,6 +25,23 @@
     }
   }
 
+  function loadTranslationDragAssets() {
+    if (!document.querySelector('link[data-leitura-translation-drag]')) {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = '/translation-drag.css?v=20260915-13';
+      link.dataset.leituraTranslationDrag = 'true';
+      document.head.appendChild(link);
+    }
+    if (!document.querySelector('script[data-leitura-translation-drag]')) {
+      const script = document.createElement('script');
+      script.src = '/app-translation-drag.js?v=20260915-13';
+      script.defer = true;
+      script.dataset.leituraTranslationDrag = 'true';
+      document.body.appendChild(script);
+    }
+  }
+
   function setMessage(text = '', isError = false) {
     if (!message) return;
     message.textContent = text;
@@ -139,5 +156,6 @@
   form?.addEventListener('submit', event => { event.preventDefault(); login(); });
 
   loadMobileAssets();
+  loadTranslationDragAssets();
   checkSession();
 })();
