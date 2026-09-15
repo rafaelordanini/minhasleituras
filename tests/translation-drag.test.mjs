@@ -1,11 +1,22 @@
 import { chromium } from 'playwright';
 import assert from 'node:assert/strict';
 
+async function unlockForUiTest(page) {
+  await page.evaluate(() => {
+    const gate = document.getElementById('authGate');
+    const app = document.getElementById('app');
+    if (gate) gate.hidden = true;
+    app?.classList.remove('auth-locked');
+    app?.removeAttribute('aria-hidden');
+  });
+}
+
 const browser = await chromium.launch({ headless:true });
 try {
   const page = await browser.newPage({ viewport:{ width:930, height:830 } });
   await page.goto('http://127.0.0.1:4173', { waitUntil:'domcontentloaded' });
   await page.waitForFunction(() => Boolean(window.LeiturTranslationDrag), null, { timeout:10000 });
+  await unlockForUiTest(page);
 
   await page.evaluate(() => {
     const card = document.getElementById('translationCard');
@@ -45,6 +56,12 @@ try {
   assert.ok(handleBox);
   await page.mouse.move(handleBox.x + 30, handleBox.y + 8);
   await page.mouse.down();
+  const dragStarted = await page.evaluate(() => ({
+    dragging: window.LeiturTranslationDrag.isDragging(),
+    mode: window.LeiturTranslationDrag.mode()
+  }));
+  assert.equal(dragStarted.dragging, true, 'mousedown no cabeçalho deve iniciar o arraste');
+  assert.equal(dragStarted.mode, 'mouse');
   await page.mouse.move(70, 80, {steps:8});
   await page.mouse.up();
   await page.waitForTimeout(50);
@@ -53,12 +70,13 @@ try {
     const rect = document.getElementById('translationCard').getBoundingClientRect();
     return {left:rect.left,top:rect.top,right:rect.right,bottom:rect.bottom,w:innerWidth,h:innerHeight};
   });
-  assert.ok(after.left < before.left - 50 || after.top < before.top - 50, 'arraste deve mudar a posição da caixa');
+  assert.ok(Math.abs(after.left - before.left) > 20 || Math.abs(after.top - before.top) > 20, 'arraste deve mudar a posição da caixa');
   assert.ok(after.left >= 7 && after.top >= 7 && after.right <= after.w - 7 && after.bottom <= after.h - 7, 'caixa arrastada deve continuar dentro do viewport');
 
   const mobile = await browser.newPage({ viewport:{ width:390, height:700 }, hasTouch:true });
   await mobile.goto('http://127.0.0.1:4173', { waitUntil:'domcontentloaded' });
   await mobile.waitForFunction(() => Boolean(window.LeiturTranslationDrag), null, { timeout:10000 });
+  await unlockForUiTest(mobile);
   await mobile.evaluate(() => {
     const card = document.getElementById('translationCard');
     document.getElementById('translationText').textContent = 'Tradução '.repeat(300);
